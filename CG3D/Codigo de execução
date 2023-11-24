@@ -1,0 +1,1 @@
+g++ -o programa main.cpp quadrado.cpp -lGL -lGLU -lglut -lSOIL
