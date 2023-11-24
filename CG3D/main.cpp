@@ -32,7 +32,7 @@ float result_trans_y = 0;
 
 void carregarTextura() {
     int largura, altura, canais;
-    unsigned char *imagem = stbi_load("txt.jpg", &largura, &altura, &canais, 0);
+    unsigned char *imagem = stbi_load("textura.jpg", &largura, &altura, &canais, 0);
 
     if (imagem) {
         glGenTextures(1, &texture);
