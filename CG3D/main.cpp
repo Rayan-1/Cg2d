@@ -31,23 +31,26 @@ float result_trans_x = 0;
 float result_trans_y = 0;
 
 void carregarTextura() {
-    texture = SOIL_load_OGL_texture(
-        "txt.jpg",
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_INVERT_Y
-    );
+    int largura, altura, canais;
+    unsigned char *imagem = stbi_load("txt.jpg", &largura, &altura, &canais, 0);
 
-    if (texture == 0) {
+    if (imagem) {
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, largura, altura, 0, GL_RGB, GL_UNSIGNED_BYTE, imagem);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(imagem);
+    } else {
         cerr << "Erro ao carregar a textura." << endl;
-        cerr << "Erro SOIL: " << SOIL_last_result() << endl;
         exit(EXIT_FAILURE);
     }
-
-    glBindTexture(GL_TEXTURE_2D, texture);  // Vincule a textura
-    glEnable(GL_TEXTURE_2D);
 }
-
 
 void desenhaFundo() {
     // Adicione mensagens de log
@@ -175,14 +178,17 @@ void desenha() {
 }
 
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);                         
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);  // Adicione GLUT_DEPTH para habilitar o teste de profundidade
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowPosition(200, 200);
     glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);
     glutCreateWindow("Jogo Puzzle version 1.0");
 
     inicio();
+
+    cout << "Carregando textura..." << endl;
     carregarTextura();
+    cout << "Textura carregada com sucesso." << endl;
 
     glutDisplayFunc(desenha);
     glutMouseFunc(mouseClick);
