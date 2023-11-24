@@ -185,6 +185,7 @@ int main(int argc, char** argv) {
     glutCreateWindow("Jogo Puzzle version 1.0");
 
     inicio();
+     carregarTextura();  // Certifique-se de chamar a função aqui
 
     cout << "Carregando textura..." << endl;
     carregarTextura();
