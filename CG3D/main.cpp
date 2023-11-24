@@ -1,5 +1,7 @@
 #include <GL/glut.h>
-#include <SOIL/SOIL.h>  // Certifique-se de ter a biblioteca SOIL instalada
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <SOIL/SOIL.h>
 #include <iostream>
 #include <cmath>
 #include "Quadrado.h"
@@ -30,7 +32,7 @@ float result_trans_y = 0;
 
 void carregarTextura() {
     texture = SOIL_load_OGL_texture(
-        "textura.jpg",
+        "txt.jpg",
         SOIL_LOAD_AUTO,
         SOIL_CREATE_NEW_ID,
         SOIL_FLAG_INVERT_Y
@@ -42,9 +44,11 @@ void carregarTextura() {
         exit(EXIT_FAILURE);
     }
 
+    glBindTexture(GL_TEXTURE_2D, texture);  // Vincule a textura
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture);
 }
+
+
 void desenhaFundo() {
     // Adicione mensagens de log
     cout << "Desenhando fundo..." << endl;
@@ -167,7 +171,6 @@ void desenha() {
     glEnd();
 
     
-    glFlush();  //Todas as instruções anteriores apenas indicaram o que deve ser feito. Essa é a ordem pra GPU redesenhar com as informações enviadas
     glutSwapBuffers();  // Troca os buffers (double-buffering)
 }
 
