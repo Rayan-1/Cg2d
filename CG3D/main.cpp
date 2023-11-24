@@ -9,9 +9,9 @@ GLuint texture;
 
  //É uma boa prática criar uma função para agrupar configurações iniciais do OpenGL para o desenho a ser feito
 void inicio() {
-    glClearColor(1.0, 0.0, 0.0, 0.0); //indica qual cor será usada para limpar o frame buffer (normalmente usa uma cor de background)
+     glClearColor(1.0, 1.0, 1.0, 1.0);  // Defina a cor de limpeza para branco ou a cor desejada
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);  // Não esqueça de habilitar a textura 2D
 }
 bool mousePress = false;
 float Tam_Janela_init = 500;
@@ -30,7 +30,7 @@ float result_trans_y = 0;
 
 void carregarTextura() {
     texture = SOIL_load_OGL_texture(
-        "textura.jpg",  // Caminho relativo ao diretório do executável
+        "textura.jpg",
         SOIL_LOAD_AUTO,
         SOIL_CREATE_NEW_ID,
         SOIL_FLAG_INVERT_Y
@@ -38,6 +38,7 @@ void carregarTextura() {
 
     if (texture == 0) {
         cerr << "Erro ao carregar a textura." << endl;
+        cerr << "Erro SOIL: " << SOIL_last_result() << endl;
         exit(EXIT_FAILURE);
     }
 
@@ -45,6 +46,9 @@ void carregarTextura() {
     glBindTexture(GL_TEXTURE_2D, texture);
 }
 void desenhaFundo() {
+    // Adicione mensagens de log
+    cout << "Desenhando fundo..." << endl;
+
     glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0); glVertex3f(-3.0, -3.0, -5.0);
     glTexCoord2f(1.0, 0.0); glVertex3f(5.0, -3.0, -5.0);
@@ -168,23 +172,20 @@ void desenha() {
 }
 
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);                         //inicializar a biblioteca GLUT
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);  //configurações do frame buffer (um frame buffer com três canais de cor: RGB)
-    glutInitWindowPosition(200, 200);              //posição do canto superior esquerdo da janela com relação a tela
-    glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);                  //resolução da janela (framebuffer)
-    glutCreateWindow("Jogo Pluzze version 1.0");             //cria a janela (a string aparece na barra de título da janela)
+    glutInit(&argc, argv);                         
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);  // Adicione GLUT_DEPTH para habilitar o teste de profundidade
+    glutInitWindowPosition(200, 200);
+    glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);
+    glutCreateWindow("Jogo Puzzle version 1.0");
 
     inicio();
-     carregarTextura();  // Carrega a textura no início
+    carregarTextura();
 
-    glutMainLoop();
-    glutDisplayFunc(desenha);   //indica pra GLUT que a função 'desenha' será chamada para atualizar o frame buffer
+    glutDisplayFunc(desenha);
     glutMouseFunc(mouseClick);
     glutMotionFunc(movimentoMouse);
-    
 
-    glutMainLoop();             //mantém um laço interno usando threads para que a janela permaneça aberta
-
+    glutMainLoop();
 
     return 0;
 }
