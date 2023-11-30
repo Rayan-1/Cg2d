@@ -30,8 +30,8 @@ float mediay = ((Yv1 + (Yv1 + 1.0f)) / 2);
 
 void mouseClick(int button, int state, int x, int clique_mouse_y) {
     clique_mouse_y = Tam_Janela_init - clique_mouse_y; //inverter os valores da coordenada y do mouse, ja que ela pega os pixel contado de cima para baixo.
-    result_trans_y = -1 + (clique_mouse_y * (6)) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
-    result_trans_x = -1 + (x * (6)) / Tam_Janela_init;
+    result_trans_y = -1 + (clique_mouse_y * 6) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
+    result_trans_x = -1 + (x * 6) / Tam_Janela_init;
     if (button == GLUT_LEFT_BUTTON) {
         if (state == GLUT_DOWN) {
             // Quando o bot�o esquerdo do mouse � pressionado, inicia o movimento
@@ -60,8 +60,8 @@ void mouseClick(int button, int state, int x, int clique_mouse_y) {
 void movimentoMouse(int x, int y) {
     if (mousePress) {
         y = Tam_Janela_init - y; //inverter os valores da coordenada y do mouse, ja que ela pega os pixel contado de cima para baixo.
-        result_trans_y = -1 + (y * (6)) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
-        result_trans_x = -1 + (x * (6)) / Tam_Janela_init;
+        result_trans_y = -1 + (y * 6) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
+        result_trans_x = -1 + (x * 6) / Tam_Janela_init;
 
         if (result_trans_x >= Xv1 && result_trans_x <= (Xv1 + 1.0f) && result_trans_y >= Yv1 && result_trans_y <= (Yv1 + 1.0f)) {// verifica se o clique est� dentro do quadrado, so entao ele realiza a movimenta��o 
             Xv1 = result_trans_x - 0.5f; // aqui � uma gambiarra para pegar o meio do quadrado 
