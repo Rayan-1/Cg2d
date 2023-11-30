@@ -1,5 +1,7 @@
 #include <GL/glut.h>
-#include <SOIL/SOIL.h>  // Certifique-se de ter a biblioteca SOIL instalada
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include <SOIL/SOIL.h>
 #include <iostream>
 #include <cmath>
 #include "Quadrado.h"
@@ -9,9 +11,9 @@ GLuint texture;
 
  //É uma boa prática criar uma função para agrupar configurações iniciais do OpenGL para o desenho a ser feito
 void inicio() {
-    glClearColor(1.0, 0.0, 0.0, 0.0); //indica qual cor será usada para limpar o frame buffer (normalmente usa uma cor de background)
+     glClearColor(1.0, 1.0, 1.0, 1.0);  // Defina a cor de limpeza para branco ou a cor desejada
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);  // Não esqueça de habilitar a textura 2D
 }
 bool mousePress = false;
 float Tam_Janela_init = 500;
@@ -29,22 +31,31 @@ float result_trans_x = 0;
 float result_trans_y = 0;
 
 void carregarTextura() {
-    texture = SOIL_load_OGL_texture(
-        "textura.jpg",  // Caminho relativo ao diretório do executável
-        SOIL_LOAD_AUTO,
-        SOIL_CREATE_NEW_ID,
-        SOIL_FLAG_INVERT_Y
-    );
+    int largura, altura, canais;
+    unsigned char *imagem = stbi_load("textura.jpg", &largura, &altura, &canais, 0);
 
-    if (texture == 0) {
+    if (imagem) {
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, largura, altura, 0, GL_RGB, GL_UNSIGNED_BYTE, imagem);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(imagem);
+    } else {
         cerr << "Erro ao carregar a textura." << endl;
         exit(EXIT_FAILURE);
     }
-
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture);
 }
+
 void desenhaFundo() {
+    // Adicione mensagens de log
+    cout << "Desenhando fundo..." << endl;
+
     glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0); glVertex3f(-3.0, -3.0, -5.0);
     glTexCoord2f(1.0, 0.0); glVertex3f(5.0, -3.0, -5.0);
@@ -163,28 +174,28 @@ void desenha() {
     glEnd();
 
     
-    glFlush();  //Todas as instruções anteriores apenas indicaram o que deve ser feito. Essa é a ordem pra GPU redesenhar com as informações enviadas
     glutSwapBuffers();  // Troca os buffers (double-buffering)
 }
 
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);                         //inicializar a biblioteca GLUT
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);  //configurações do frame buffer (um frame buffer com três canais de cor: RGB)
-    glutInitWindowPosition(200, 200);              //posição do canto superior esquerdo da janela com relação a tela
-    glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);                  //resolução da janela (framebuffer)
-    glutCreateWindow("Jogo Pluzze version 1.0");             //cria a janela (a string aparece na barra de título da janela)
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowPosition(200, 200);
+    glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);
+    glutCreateWindow("Jogo Puzzle version 1.0");
 
     inicio();
-     carregarTextura();  // Carrega a textura no início
+     carregarTextura();  // Certifique-se de chamar a função aqui
 
-    glutMainLoop();
-    glutDisplayFunc(desenha);   //indica pra GLUT que a função 'desenha' será chamada para atualizar o frame buffer
+    cout << "Carregando textura..." << endl;
+    carregarTextura();
+    cout << "Textura carregada com sucesso." << endl;
+
+    glutDisplayFunc(desenha);
     glutMouseFunc(mouseClick);
     glutMotionFunc(movimentoMouse);
-    
 
-    glutMainLoop();             //mantém um laço interno usando threads para que a janela permaneça aberta
-
+    glutMainLoop();
 
     return 0;
 }
