@@ -5,16 +5,16 @@ Quadrado::Quadrado(float x, float y, float z) : Xv1(x), Yv1(y), Zv1(z), angle(0.
 
 void Quadrado::desenha() const { // metodo desenho
 
-    GLfloat vertices[][3] = { //Cada vértice possui três coordenadas (x, y, z)
-    {Xv1, Yv1,  Zv1}, //Vertice 0
-    {Xv1+ 2.0, Yv1,  Zv1}, //Vertice 1
-    {Xv1 + 2.0, Yv1+ 2.0,  Zv1}, //Vertice 2
-    {Xv1,  Yv1 + 2.0,  Zv1}, //Vertice 3
-    {Xv1, Yv1, Zv1 -2.0}, //Vertice 4
-    {Xv1 + 2.0, Yv1, Zv1 -2.0}, //Vertice 5
-    {Xv1 + 2.0,  Yv1 + 2.0, Zv1 -2.0}, //Vertice 6
-    {Xv1,  Yv1 + 2.0, Zv1 -2.0} //Vertice 7
-    };
+  GLfloat vertices[][3] = {
+    {Xv1, Yv1,  Zv1},          // Vértice 0 (canto inferior esquerdo frontal)
+    {Xv1+2.0, Yv1,  Zv1},      // Vértice 1 (canto inferior direito frontal)
+    {Xv1+2.0, Yv1+2.0,  Zv1},  // Vértice 2 (canto superior direito frontal)
+    {Xv1, Yv1+2.0,  Zv1},      // Vértice 3 (canto superior esquerdo frontal)
+    {Xv1, Yv1, Zv1-2.0},       // Vértice 4 (canto inferior esquerdo traseiro)
+    {Xv1+2.0, Yv1, Zv1-2.0},   // Vértice 5 (canto inferior direito traseiro)
+    {Xv1+2.0, Yv1+2.0, Zv1-2.0},// Vértice 6 (canto superior direito traseiro)
+    {Xv1, Yv1+2.0, Zv1-2.0}    // Vértice 7 (canto superior esquerdo traseiro)
+};
      //a matriz indica quais sao os vertices necessarios para desenha o cubo, para desenha a face frontal
     int faces[][4] = { //Cada face é definida por quatro índices de vértices
         {0, 1, 2, 3},  // Face frontal
