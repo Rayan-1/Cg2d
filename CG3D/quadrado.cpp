@@ -1,18 +1,44 @@
 #include "Quadrado.h"
 #include <GL/glut.h>
 
-Quadrado::Quadrado(float x, float y) : Xv1(x), Yv1(y), angle(0.0) {}//contrutor serve para inicializar as variaveis com os valores passados nos parametros! 
+Quadrado::Quadrado(float x, float y, float z) : Xv1(x), Yv1(y), Zv1(z), angle(0.0) {}//contrutor serve para inicializar as variaveis com os valores passados nos parametros! 
 
 void Quadrado::desenha() const { // metodo desenho
-    
-    glColor3f(1.0, 0.0, 1.0); //coloca as cores dos vertices no padrão RGB para os proximos pontos
-    glBegin(GL_QUADS); // utilizando a primitiva do quadrado
-    glVertex2f(Xv1, Yv1);  //instrução que envia as coordenadas dos vértices do triângulo
-    glVertex2f(Xv1, Yv1 + 1.0f);
-    glColor3f(1.0, 1.0, 0.0); // muda os pontos para outra cor 
-    glVertex2f(Xv1 + 1.0f, Yv1 + 1.0f);
-    glVertex2f(Xv1 + 1.0f, Yv1);
-    glEnd(); // finaliza o desenho 
+
+    GLfloat vertices[][3] = { //Cada vértice possui três coordenadas (x, y, z)
+    {Xv1, Yv1,  Zv1}, //Vertice 0
+    {Xv1+ 2.0, Yv1,  Zv1}, //Vertice 1
+    {Xv1 + 2.0, Yv1+ 2.0,  Zv1}, //Vertice 2
+    {Xv1,  Yv1 + 2.0,  Zv1}, //Vertice 3
+    {Xv1, Yv1, Zv1 -2.0}, //Vertice 4
+    {Xv1 + 2.0, Yv1, Zv1 -2.0}, //Vertice 5
+    {Xv1 + 2.0,  Yv1 + 2.0, Zv1 -2.0}, //Vertice 6
+    {Xv1,  Yv1 + 2.0, Zv1 -2.0} //Vertice 7
+    };
+     //a matriz indica quais sao os vertices necessarios para desenha o cubo, para desenha a face frontal
+    int faces[][4] = { //Cada face é definida por quatro índices de vértices
+        {0, 1, 2, 3},  // Face frontal
+        {4, 5, 6, 7},  // Face traseira
+        {0, 3, 7, 4},  // Lado esquerdo
+        {1, 2, 6, 5},  // Lado direito
+        {0, 1, 5, 4},  // Base
+        {2, 3, 7, 6}   // Topo
+    };
+    GLfloat coordenadasTextura[][2] = {
+        {0.0, 0.0}, //Canto Inferior Esquerdo 
+        {1.0, 0.0}, //Canto Inferior Direito
+        {1.0, 1.0}, //Canto Superior Direito 
+        {0.0, 1.0} //Canto Superior Esquerdo
+    };
+
+    glBegin(GL_QUADS);
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 4; j++) {
+            glTexCoord2fv(coordenadasTextura[j]);
+            glVertex3fv(vertices[faces[i][j]]);
+        }
+    }
+    glEnd();
 
 }
 
