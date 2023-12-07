@@ -1,283 +1,231 @@
 #include <GL/glut.h>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
+#include <GL/gl.h>
 #include <GL/glu.h>
-#include <unistd.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h" //incluindo o arquivo responsável por realizar leitura de arquivos de imagem
-
+#include <glm/ext.hpp>
 #include <iostream>
-using namespace std;
-
+#include <cmath>
+#include "Quadrado.h"
+#include <glm/glm.hpp>
+#define STB_IMAGE_IMPLEMENTATION
 #define FPS 30
-#define TEX_CHAO_FILE "textura.jpg"
+#include "stb_image.h"
+//#include "codigoOpenGl.h"
+using namespace std;
+float Tam_Janela_init = 500;
+glm::vec4 camPos(-2.5, 2.5, 5, 1);                                                              //posição inicial da câmera
+glm::mat4 camRotacao = glm::rotate(glm::mat4(1), glm::radians(1.0f), glm::vec3(0, 1, 0)); //matriz de rotação para girar a câmera
+bool camMove = true;                                                               //liga/desliga movimentação da câmera
 
+//teste de iluminação
+GLfloat luzAmbiente[] = { 0.2, 0.2, 0.2, 1.0 };
+GLfloat luzDifusa[] = { 1.0, 1.0, 1.0, 1.0 }; // intensidade da luz em RGB -> 1,1,1,1 = branca 
+GLfloat luzEspecular[] = { 1.0, 1.0, 1.0, 1.0 };
+GLfloat posicaoLuz[] = { 0.0, 4.0, 4.0, 1.0 }; //posição da luz do plano 
 
-//variáveis globais relacionadas a câmera
-glm::vec4 camPos(6,6,6,1);                                                              //posição inicial da câmera
-glm::mat4 camRotacao = glm::rotate(glm::mat4(1), glm::radians(1.0f), glm::vec3(0,1,0)); //matriz de rotação para girar a câmera
-bool      camMove = true;                                                               //liga/desliga movimentação da câmera
-bool      showEixos = true;
-unsigned int texChaoId; //identificador da textura do chão
-unsigned int texCuboId; //identificador da textura dos cubos
+GLfloat materialAmbiente[] = { 0.2, 0.2, 0.2, 1.0 };
+GLfloat materialDifuso[] = { 0.8, 0.8, 0.8, 1.0 };
+GLfloat materialEspecular[] = { 0.5, 0.5, 0.5, 1.0 };
+GLfloat materialBrilho = 10.0;
+//encerra teste de iluminação
+ //É uma boa prática criar uma função para agrupar configurações iniciais do OpenGL para o desenho a ser feito
 
-//variáveis globais relacionadas a dimensões da janela
-int larguraJanela = 500, alturaJanela = 500;
-float aspectRatio;
-
-unsigned int carregaTextura(char fileName[]){
-    unsigned int texId;
-    int largura, altura, nCanais;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *imagem = stbi_load(fileName, &largura, &altura, &nCanais, 0); //qtd de pixels na largura e altura preenchidas automaticamente
-    if(imagem == NULL) //verificação se o carregamento da imagem ocorreu com sucesso
-        cout << "Erro, Imagem não carregada" << endl;
-    else
-        cout << "Imagem carregada com sucesso" << endl;
-
-    glEnable(GL_TEXTURE_2D);             //habilitando o uso de texturas
-    glGenTextures(1, &texId);            //gerando um objeto textura na máquina OpenGL
-    glBindTexture(GL_TEXTURE_2D, texId); //ativando o objeto textura recém criado
-
-    //parâmetros da textura caso coordenadas além do intervalo [0,1] seja utilizado
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); //repetição espelhada no eixo S
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT); //repetição espelhada no eixo T
-
-    //parâmetros da textura para filtragem quando tamanho de pixel e texel sejam diferentes (interpolação linear em ambos os casos)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //magnificação - quando um texel cobre vários pixels
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //minificação - quando muitos texels cabem em um único pixel
-
-    //parâmetros da textura para indicar se a textura deve-se combinar ou substituir a atual cor do objeto
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE); //GL_REPLACE = substitui, GL_COMBINE = combina (ou multiplica)
-
-    //envio dos dados da textura para o OpenGL
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 largura,          //largura da textura
-                 altura,           //altura da textura (carregadas automaticamente pela função da biblioteca)
-                 0,
-                 GL_RGB,           //formato da cor da textura
-                 GL_UNSIGNED_BYTE, //tipos de dados de cada texel da textura
-                 imagem);          //ponteiro para os dados da textura
-
-    glBindTexture(GL_TEXTURE_2D, 0); //desativando o objeto textura criado (ativa apenas quando for usar em algum objeto)
-
-    stbi_image_free(imagem); //memória RAM pode ser liberada pois a imagem foi enviada ao OpenGL (memória gráfica)
-
-    return texId; //retornando o identificador da textura (sem ele não há como acessar a textura carregada)
-}
-
-
-//É uma boa prática criar uma função para agrupar configurações iniciais do OpenGL para o desenho a ser feito
-void inicio(){
-    glClearColor(0.0, 0.0, 0.0, 1.0); //cor de fundo (preto)
-    glEnable(GL_DEPTH_TEST);          //habilitando a remoção de faces que estejam atrás de outras (ocultas)
-    glEnable(GL_MULTISAMPLE);         //habilita um tipo de antialiasing (melhora serrilhado)
-
-    //Essas instruções são para descobrir onde está seu arquivo executável. Adicione uma pasta texturas e suas texturas nesse mesmo lugar.
-    char buffer[FILENAME_MAX];
-    if (getcwd(buffer, sizeof(buffer)) != NULL) {
-        std::cout << "Diretório corrente: " << buffer << std::endl;
-    } else {
-        std::cerr << "Erro ao obter o diretório corrente." << std::endl;
-    }
-
-    //carregando as texturas que serão utilizadas
-    texChaoId = carregaTextura(TEX_CHAO_FILE);
+void inicio() {
     
+    glClearColor(0.0, 0.0, 0.0, 1.0); //indica qual cor será usada para limpar o frame buffer (normalmente usa uma cor de background)
+    glEnable(GL_DEPTH_TEST);
+    //glDisable(GL_LIGHTING);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, luzAmbiente);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, luzDifusa);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
+    glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
+
+    // Configurar material
+    glMaterialfv(GL_FRONT, GL_AMBIENT, materialAmbiente);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, materialDifuso);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, materialEspecular);
+    glMaterialf(GL_FRONT, GL_SHININESS, materialBrilho);
 }
-
-
-//função chamada sempre que a janela for modificada de tamanho
-void alteraJanela(int largura, int altura){
-    larguraJanela = largura;
-    alturaJanela  = altura;
-    aspectRatio   = (float)larguraJanela/alturaJanela;
-    glutPostRedisplay();
+//movimentação da camera teste
+void teclado(unsigned char tecla, int x, int y) {
+    if (tecla == ' ') camMove = !camMove; //tecla espaço alterna entre deixar ou não a câmera girar em torno do objeto
 }
-
-//função que trata ações feitas com o teclado
-void teclado(unsigned char tecla, int x, int y){
-    if(tecla == ' ') camMove = !camMove; //tecla espaço alterna entre deixar ou não a câmera girar em torno do objeto
-    if(tecla == 'e' || tecla == 'E') showEixos = !showEixos; //tecla 'E' alterna entre mostrar ou ocultar os eixos do sistema de coordenadas
-}
-
-//função que é chamada em intervalos regulares de tempo
-void timer(int v){
-    glutTimerFunc(1000/FPS, timer, 0); //executada a quantidade FPS de vezes por segundo
+void timer(int v) {
+    glutTimerFunc(1000 / FPS, timer, 0); //executada a quantidade FPS de vezes por segundo
 
     //se a opção camMove estiver verdadeira, gire a câmera
-    if(camMove)
+    if (camMove)
         camPos = camRotacao * camPos; //rotacionando a posição da câmera a matriz de rotação camRotacao
 
     //redesenhando a tela
     glutPostRedisplay();
 }
+//encerra teste de movimentação da camera 
+GLuint carregarTextura(const char* caminhoDaTextura) {
+    stbi_set_flip_vertically_on_load(true);// inverte a imagem, comum ao carregar texturas
+    // armazenará o identificador da textura gerado pelo OpenGL.
+    GLuint texturaID;
+    glEnable(GL_TEXTURE_2D);             //habilitando o uso de texturas
+    glGenTextures(1, &texturaID);   //indentificador para a textura
+    glBindTexture(GL_TEXTURE_2D, texturaID);  //Isso associa o identificador gerado à textura atual.
 
-//função para desenhar os eixos cartesianos do sistema de coordenadas global (ou de mundo, ou de cenário)
-void eixos(){
-    glLineWidth(3); //altera a largura das linhas para 3 pixels
-    glBegin(GL_LINES);
-        //eixo x em vermelho
-        glColor3f(1,0,0);
-        glVertex3f(0,0,0);
-        glVertex3f(100,0,0);
-        //eixo y em verde
-        glColor3f(0,1,0);
-        glVertex3f(0,0,0);
-        glVertex3f(0,100,0);
-        //eixo z em azul
-        glColor3f(0,0,1);
-        glVertex3f(0,0,0);
-        glVertex3f(0,0,100);
-    glEnd();
+    int largura, altura, nrCanais;
+    unsigned char* dados = stbi_load(caminhoDaTextura, &largura, &altura, &nrCanais, 0);
+    if (caminhoDaTextura == NULL) //verificação se o carregamento da imagem ocorreu com sucesso
+        cout << "Erro, Imagem não carregada" << endl;
+    else
+        cout << "Imagem carregada com sucesso" << endl;
+
+
+    if (dados) {
+
+        GLenum formatoTextura = (nrCanais == 3) ? GL_RGB : GL_RGBA;
+
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //repetição espelhada no eixo S
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); //repetição espelhada no eixo T
+
+        //parâmetros da textura para filtragem quando tamanho de pixel e texel sejam diferentes (interpolação linear em ambos os casos)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //magnificação - quando um texel cobre vários pixels
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //minificação - quando muitos texels cabem em um único pixel
+
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, formatoTextura, largura, altura, 0, formatoTextura, GL_UNSIGNED_BYTE, dados);
+        //glGenerateMipmap(GL_TEXTURE_2D);
+
+        stbi_image_free(dados);
+        return texturaID;
+    }
+    else {
+        // Lidar com erro ao carregar textura
+        std::cerr << "Erro ao carregar a textura." << std::endl;
+    }
+
+    return texturaID;
 }
 
-void cubo(){
-    glm::vec3 verticePos[8];
-    glm::vec2 texturePos[12];
 
-    //todas as posições dos vértices do cubo
-    verticePos[0] = glm::vec3(-1,-1,-1);
-    verticePos[1] = glm::vec3(-1,-1, 1);
-    verticePos[2] = glm::vec3(-1, 1,-1);
-    verticePos[3] = glm::vec3(-1, 1, 1);
-    verticePos[4] = glm::vec3( 1,-1,-1);
-    verticePos[5] = glm::vec3( 1,-1, 1);
-    verticePos[6] = glm::vec3( 1, 1,-1);
-    verticePos[7] = glm::vec3( 1, 1, 1);
+bool mousePress = false;
 
-    //todas as posições da textura que serão utilizadas para mapear nos vértices do cubo
-    texturePos[ 0] = glm::vec2(0.00, 0.0);
-    texturePos[ 1] = glm::vec2(0.33, 0.0);
-    texturePos[ 2] = glm::vec2(0.67, 0.0);
-    texturePos[ 3] = glm::vec2(1.00, 0.0);
-    texturePos[ 4] = glm::vec2(0.00, 0.5);
-    texturePos[ 5] = glm::vec2(0.33, 0.5);
-    texturePos[ 6] = glm::vec2(0.67, 0.5);
-    texturePos[ 7] = glm::vec2(1.00, 0.5);
-    texturePos[ 8] = glm::vec2(0.00, 1.0);
-    texturePos[ 9] = glm::vec2(0.33, 1.0);
-    texturePos[10] = glm::vec2(0.67, 1.0);
-    texturePos[11] = glm::vec2(1.00, 1.0);
 
-    int facesVert[6][4];
-    int facesTex[6][4];
+//Coordenadas de inicialização do quadrado 3D 1
+float Xv1 = -1.0;
+float Yv1 = -1.0;
+float Zv1 = 1.0;
+//Coordenadas de inicialização do quadrado 2
+float Xv2 = -1.0;
+float Yv2 = -1.0;
+Quadrado PecaQuadrado(Xv1, Yv1, Zv1); // instancia um objeto do tipo quadrado! 
+//Quadrado PecaQuadrado2(Xv2, Yv2);
 
-    //Cada face conecta 4 vértices. Anotando os índices do vetor verticePos que cada face conecta.
-    facesVert[0][0] = 0; facesVert[0][1] = 1; facesVert[0][2] = 3; facesVert[0][3] = 2;
-    facesVert[1][0] = 0; facesVert[1][1] = 4; facesVert[1][2] = 5; facesVert[1][3] = 1;
-    facesVert[2][0] = 4; facesVert[2][1] = 6; facesVert[2][2] = 7; facesVert[2][3] = 5;
-    facesVert[3][0] = 6; facesVert[3][1] = 2; facesVert[3][2] = 3; facesVert[3][3] = 7;
-    facesVert[4][0] = 1; facesVert[4][1] = 5; facesVert[4][2] = 7; facesVert[4][3] = 3;
-    facesVert[5][0] = 0; facesVert[5][1] = 2; facesVert[5][2] = 6; facesVert[5][3] = 4;
+float result_trans_x = 0;
+float result_trans_y = 0;
 
-    //Cada face precisa de 4 coordenadas de textura. Anotando os índices do vetor texturaPos que cada face irá precisar.
-    facesTex[0][0] = 0; facesTex[0][1] = 1; facesTex[0][2] = 5;  facesTex[0][3] = 4;
-    facesTex[1][0] = 1; facesTex[1][1] = 2; facesTex[1][2] = 6;  facesTex[1][3] = 5;
-    facesTex[2][0] = 2; facesTex[2][1] = 3; facesTex[2][2] = 7;  facesTex[2][3] = 6;
-    facesTex[3][0] = 4; facesTex[3][1] = 5; facesTex[3][2] = 9;  facesTex[3][3] = 8;
-    facesTex[4][0] = 5; facesTex[4][1] = 6; facesTex[4][2] = 10; facesTex[4][3] = 9;
-    facesTex[5][0] = 6; facesTex[5][1] = 7; facesTex[5][2] = 11; facesTex[5][3] = 10;
 
-    //desenhando o cubo com a textura
-    glBindTexture(GL_TEXTURE_2D, texCuboId); //ativando a textura
-    glBegin(GL_QUADS);                       //todas as faces são quadrados
-    for(int i = 0 ; i < 6 ; i++){            //desenhe um total de 6 faces
-        for(int v = 0 ; v < 4 ; v++){        //passando por cada um dos 4 vértices de cada face
-            glTexCoord2f(texturePos[facesTex[i][v]].s, texturePos[facesTex[i][v]].t); //coordenada de textura localizada no índice armazenado naquela face
-            glVertex3f(verticePos[facesVert[i][v]].x, verticePos[facesVert[i][v]].y, verticePos[facesVert[i][v]].z); //coordenada do vértice localizada no índice armazenado naquela face
+
+void mouseClick(int button, int state, int x, int clique_mouse_y) {
+    clique_mouse_y = Tam_Janela_init - clique_mouse_y; //inverter os valores da coordenada y do mouse, ja que ela pega os pixel contado de cima para baixo.
+    result_trans_y = -3 + (clique_mouse_y * (10)) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
+    result_trans_x = -3 + (x * (10)) / Tam_Janela_init;
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            // Quando o botão esquerdo do mouse é pressionado, inicia o movimento
+            cout << "Estou entrando akiii " << endl;
+            mousePress = true;
+        }
+        else if (state == GLUT_UP) {
+            // Quando o botão esquerdo do mouse é liberado, para o movimento
+            cout << "saindo quando paro de clicar" << endl;
+            mousePress = false;
         }
     }
-    glEnd();
-    glBindTexture(GL_TEXTURE_2D, 0); //após terminar o desenho do objeto, desativa a textura
+    if (result_trans_x >= Xv1 && result_trans_x <= (Xv1 + 2.0f) && result_trans_y >= Yv1 && result_trans_y <= (Yv1 + 2.0f)) {// verifica se o clique está dentro do quadrado, so entao ele realiza a movimentação 
+        if (state == GLUT_DOWN && button == GLUT_RIGHT_BUTTON) { // Trata apenas do evento de clique do mouse, pois sem essa instrução de condição, ela trataria dois eventos...
+
+            PecaQuadrado.girar(90.0);
+
+            glutPostRedisplay();
+
+            cout << "x= " << result_trans_x << " y= " << result_trans_y << endl;
+        }
+
+    }
+
+}
+void movimentoMouse(int x, int y) {
+    if (mousePress) {
+        y = Tam_Janela_init - y; //inverter os valores da coordenada y do mouse, ja que ela pega os pixel contado de cima para baixo.
+        result_trans_y = -3 + (y * (10)) / Tam_Janela_init;//transformar coordenadas de pixel em coordendas cartesianas por regra de 3 
+        result_trans_x = -3 + (x * (10)) / Tam_Janela_init;
+
+        if (result_trans_x >= Xv1 && result_trans_x <= (Xv1 + 2.0f) && result_trans_y >= Yv1 && result_trans_y <= (Yv1 + 2.0f)) {// verifica se o clique está dentro do quadrado, so entao ele realiza a movimentação 
+            Xv1 = result_trans_x - 1.0f; // aqui é uma gambiarra para pegar o meio do quadrado 
+            Yv1 = result_trans_y - 1.0f; // aqui é uma gambiarra para pegar o meio do quadrado 
+
+            PecaQuadrado.mover(Xv1, Yv1);
+
+
+            glutPostRedisplay();
+
+        }
+        if (result_trans_x >= Xv2 && result_trans_x <= (Xv2 + 1.0f) && result_trans_y >= Yv2 && result_trans_y <= (Yv2 + 1.0f)) {
+            Xv2 = result_trans_x - 0.5f; // aqui é uma gambiarra para pegar o meio do quadrado 
+            Yv2 = result_trans_y - 0.5f; // aqui é uma gambiarra para pegar o meio do quadrado 
+
+            //PecaQuadrado2.mover(Xv2, Yv2);
+
+
+            glutPostRedisplay();
+        }
+
+    }
 }
 
-//função que desenha o cenário inteiro
-void cenario(){
-    //desenhando o chão no plano XZ
-    glPushMatrix();
-    glColor3f(0.3,0.3,0.3);
-    glScalef(3,1,3);
-    glBindTexture(GL_TEXTURE_2D, texChaoId);     //habilitando a textura do chão
-    glBegin(GL_QUADS);                           //desenhar um quadrado
-        glTexCoord2f(0,0); glVertex3f(-1,0,-1);  //coordenadas de textura seguidas pelas coordenadas de vértice correspondente do quadrado
-        glTexCoord2f(1,0); glVertex3f( 1,0,-1);
-        glTexCoord2f(1,1); glVertex3f( 1,0, 1);
-        glTexCoord2f(0,1); glVertex3f(-1,0, 1);
-    glEnd();
-    glBindTexture(GL_TEXTURE_2D, 0);             //desabilitando a textura após terminar de usá-la
-    glPopMatrix();
-
-    //desenhando cubo 1
-    glPushMatrix();
-    glTranslatef(1.0,0.5,2);
-    glRotatef(30, 0,1,0);
-    glScalef(0.5,0.5,0.5);
-    cubo();
-    glPopMatrix();
-
-    //desenhando cubo 2
-    glPushMatrix();
-    glTranslatef(-2.0,0.5,0);
-    glRotatef(45, 0,1,0);
-    glRotatef(90, 1,0,0);      //rotação de 90º para colocar um número diferente na face superior do dado
-    glScalef(0.5,0.5,0.5);
-    cubo();
-    glPopMatrix();
-}
-
-//Função que desenha conteúdo na tela
-void desenha(){
-    glViewport(0,0,larguraJanela,alturaJanela);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //definindo o tipo de projeção
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glm::mat4 matrizProjecao = glm::perspective(glm::radians(45.0f),               //ângulo de abertura do frustum
-                                                (float)larguraJanela/alturaJanela, //aspect ratio do plano de projeção
-                                                1.0f, 100.0f);                     //near e far (limites na profundidade do volume de visualização)
-    glMultMatrixf(glm::value_ptr(matrizProjecao));
-
-    //definindo o posicionamento da câmera
+//Função que será usada para desenhar o conteúdo no Frame Buffer
+void desenha() {
+    glEnable(GL_TEXTURE_2D);  // Ativação de Textura
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //sempre antes de desenhar qualquer coisa, deve-se limpar o Frame Buffer
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    glOrtho(-3, 7, -3, 7, -5, 7);// tamanho de visualização da tela é de 6 vai de (-3 até 7) 
     glm::mat4 matrizCamera = glm::lookAt(glm::vec3(camPos), //eye = posição da câmera
-                                         glm::vec3(0,0,0),  //at  = para onde a câmera aponta
-                                         glm::vec3(0,1,0)); //up  = para onde o topo da câmera aponta
+                             glm::vec3(0, 0, 0),  //at  = para onde a câmera aponta
+                             glm::vec3(0, 1, 0)); //up  = para onde o topo da câmera aponta
     glMultMatrixf(glm::value_ptr(matrizCamera)); //criada a matriz usando GLM, deve-se enviá-la para OpenGL
-
-    //desenhando cenário (chão e objeto) e eixos
-    cenario();
-    if(showEixos) eixos();
-
-    glutSwapBuffers(); //atualizando o desenho na tela
-}
-
-
-int main(int argc, char** argv) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_MULTISAMPLE | GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowPosition(0,0);
-    glutInitWindowSize(larguraJanela,alturaJanela);
-    glutCreateWindow("Jogo Pluzze version 1.0");
-
-    inicio();
-   
-
-    glutDisplayFunc(desenha);
-    glutReshapeFunc(alteraJanela);
-    glutKeyboardFunc(teclado);
-    glutTimerFunc(1000.0/FPS, timer, 0);
+    /*gluLookAt(-2.5, 2.5, 5.0,  // Posição da câmera
+        0.0, 0.0, 0.0,  // Ponto de para onde olha
+        0.0, 1.0, 0.0);  // Vetor de orientação para cima
+      */
+    PecaQuadrado.desenha();
+    //PecaQuadrado2.desenha();
     
 
-    glutMainLoop();
 
- // g++ -o programa main.cpp quadrado.cpp -lGL -lGLU -lglut -lSOIL
- //    ./programa
+
+    glFlush();  //Todas as instruções anteriores apenas indicaram o que deve ser feito. Essa é a ordem pra GPU redesenhar com as informações enviadas
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);                         //inicializar a biblioteca GLUT
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);  //configurações do frame buffer (um frame buffer com três canais de cor: RGB)
+    glutInitWindowPosition(200, 200);              //posição do canto superior esquerdo da janela com relação a tela
+    glutInitWindowSize(Tam_Janela_init, Tam_Janela_init);                  //resolução da janela (framebuffer)
+    glutCreateWindow("Jogo Pluzze version 1.0");             //cria a janela (a string aparece na barra de título da janela)
+
+    inicio();
+    GLuint textura = carregarTextura("gambal.jpeg");
+    // Supondo que PecaQuadrado tenha
+    glutDisplayFunc(desenha);   //indica pra GLUT que a função 'desenha' será chamada para atualizar o frame buffer
+    glutMouseFunc(mouseClick);
+    glutMotionFunc(movimentoMouse);
+
+    glutKeyboardFunc(teclado);
+    glutTimerFunc(1000.0 / FPS, timer, 0);
+    glutMainLoop();             //mantém um laço interno usando threads para que a janela permaneça aberta
+
 
     return 0;
 }
