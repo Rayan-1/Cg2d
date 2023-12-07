@@ -42,7 +42,7 @@ void timer(int v) {
 }
 //encerra teste de movimentação da camera 
 GLuint carregarTextura(const char* caminhoDaTextura) {
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(true); //Inverte verticalmente a imagem ao carregar
     GLuint texturaID;
     glEnable(GL_TEXTURE_2D);             //habilitando o uso de texturas
     glGenTextures(1, &texturaID); 
@@ -102,7 +102,7 @@ void inicio() {
     glMaterialfv(GL_FRONT, GL_SPECULAR, materialEspecular);
     glMaterialf(GL_FRONT, GL_SHININESS, materialBrilho);
 
-    texcubo = carregarTextura("/home/renato/cg/Gumball.jpg");
+    texcubo = carregarTextura("Gumball.jpg");
 }
 
 
